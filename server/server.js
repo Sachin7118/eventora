@@ -14,8 +14,29 @@ const { isEmailConfigured, verifyTransporterConnection } = require('./utils/emai
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = process.env.CLIENT_URL
+  ? [process.env.CLIENT_URL.trim().replace(/\/+$/, ''), 'http://localhost:5173']
+  : '*';
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
+
+// Health Check Endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/', (req, res) => {
+  res.json({ message: 'Eventora API is running', health: '/health' });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
